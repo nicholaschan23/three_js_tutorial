@@ -2,10 +2,13 @@ import * as THREE from "three";
 import GUI from "lil-gui";
 import { AxisGridHelper } from "./utils/AxisGridHelper.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { loadModels } from "../js/utils/loadModels";
+import { loadModels } from "./utils/loadModels.js";
+import { setupRaycasting } from "./utils/cameraNavigation.js";
+import { createButton } from "./components/buttons.js";
 
 // Creating the scene, camera, and renderer
 const scene = new THREE.Scene();
+const buttons = createButton();
 
 const camera = new THREE.PerspectiveCamera(
     75,
@@ -27,6 +30,7 @@ controls.enableDamping = true; // Smooth camera movement
 controls.dampingFactor = 0.25;
 controls.rotateSpeed = 0.35;
 controls.target.set(0, 2.5, 0);
+controls.maxPolarAngle = Math.PI / 2; // Limit orbit to above ground level
 
 const objects = [];
 
@@ -37,7 +41,7 @@ directional_light.name = "directional_light";
 scene.add(directional_light);
 objects.push(directional_light);
 
-// Empty scene for sun
+// Empty scene
 const world = new THREE.Object3D();
 world.name = "world";
 scene.add(world);
@@ -78,18 +82,24 @@ objects.forEach((child) => {
     makeAxisGrid(child, child.name);
 });
 
-// Handle window resize
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-window.addEventListener('resize', onWindowResize);
+// Initialize listeners
+import { onMouseMove } from "./listeners/onMouseMove.js";
+import { onWindowResize } from "./listeners/onWindowResize.js";
+window.addEventListener("resize", onWindowResize);
+window.addEventListener("mousemove", onMouseMove, false);
 
 // Rendering the scene
+import { updateMeshRotation } from "./utils/objectFaceCamera.js";
 function animate() {
     requestAnimationFrame(animate);
+
     controls.update();
+
+    // Update mesh rotation to face the camera
+    updateMeshRotation();
+
     renderer.render(scene, camera);
 }
 animate();
+
+export { scene, camera, renderer, controls, buttons};
